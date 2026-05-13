@@ -8,8 +8,8 @@ load_dotenv()
 # Configuracion de conexion con valores por defecto para desarrollo local.
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME", "everwod_db"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", ""),
+    "user": os.getenv("DB_USER", "user_admin"),
+    "password": os.getenv("DB_PASSWORD", "1234"),
     "host": os.getenv("DB_HOST", "localhost"),
     "port": os.getenv("DB_PORT", "5432")
 }
