@@ -52,17 +52,17 @@ def get_validations() -> List[Dict[str, Any]]:
 
 @app.post("/validate", response_model=ValidationResponse)
 def validate(request: ValidationRequest) -> ValidationResponse:
-    """Registra la revision de una sugerencia especifica."""
+    """Registra o actualiza la revisión de una sugerencia específica sin duplicar."""
     suggestions = load_suggestions()
 
-    # Verifica que el ID exista para no guardar revisiones huerfanas.
+    # Verifica que el ID exista para no guardar revisiones huérfanas.
     suggestion_ids = {item["id"] for item in suggestions}
     if request.suggestion_id not in suggestion_ids:
         raise HTTPException(status_code=404, detail="Suggestion ID not found.")
 
-    # Si Postman no envia fecha, se usa la hora actual UTC.
     validations = load_validations()
     reviewed_at = request.reviewed_at or datetime.utcnow()
+    
     entry = {
         "suggestion_id": request.suggestion_id,
         "reviewer": request.reviewer,
@@ -70,10 +70,38 @@ def validate(request: ValidationRequest) -> ValidationResponse:
         "notes": request.notes,
         "reviewed_at": reviewed_at.isoformat(),
     }
-    validations.append(entry)
+
+    # --- AQUÍ ESTÁ EL TRUCO REUTILIZABLE ---
+    # Buscamos si este ID ya se había validado antes
+    existing_index = None
+    for idx, val in enumerate(validations):
+        if val["suggestion_id"] == request.suggestion_id:
+            existing_index = idx
+            break
+
+    if existing_index is not None:
+        # Si ya existía, reemplazamos la decisión vieja por la nueva
+        validations[existing_index] = entry
+    else:
+        # Si es nuevo, lo agregamos a la lista
+        validations.append(entry)
+    # ----------------------------------------
+
     save_validations(validations)
     return ValidationResponse(**entry)
 
+@app.delete("/validate/{suggestion_id}")
+def delete_validation(suggestion_id: str):
+    """Elimina una validación específica del historial por su ID."""
+    validations = load_validations()
+    # Filtramos la lista dejando por fuera el ID que queremos borrar
+    new_validations = [v for v in validations if v["suggestion_id"] != suggestion_id]
+    
+    if len(validations) == len(new_validations):
+        raise HTTPException(status_code=404, detail="ID no encontrado en el historial.")
+        
+    save_validations(new_validations)
+    return {"status": "deleted", "suggestion_id": suggestion_id}
 
 if __name__ == "__main__":
     import uvicorn
