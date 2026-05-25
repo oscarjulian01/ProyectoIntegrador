@@ -80,7 +80,7 @@ with tab_pipeline:
                     st.metric(label="Métrica de Separación (Silhouette Score)", value=data.get("silhouette_score") or "N/A")
                     st.rerun()
                 else:
-                    st.error(f"Fallo en el Modelo de Sugerencias: {suggest_res.text}")
+                    st.warning(f"Insufficient user messages to generate FAQ suggestions.")
             except Exception as e:
                 st.error(f"Error al conectar con Suggestion Service: {e}")
 
